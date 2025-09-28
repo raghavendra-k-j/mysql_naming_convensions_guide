@@ -1,0 +1,99 @@
+Table of Contents
+
+Introduction
+1.1 Why Naming Conventions Matter in Scalable MySQL Projects
+1.2 Common Pain Points in Poorly Named Schemas
+1.3 Goals of This Standard (Consistency, Clarity, Scalability, Lintability)
+
+Core Naming Rules
+2.1 Case & Style → Why lower_snake_case Wins
+2.2 Language → Why Full Words Beat Abbreviations
+2.3 Acronyms & Abbreviations → How to Use Them When Necessary (Consistency & Meaning)
+2.4 Singular vs Plural Table Names → Why Singular Is Less Ambiguous
+2.5 Avoiding Noise Prefixes (tbl_, col_) → Why They Harm More Than Help
+2.6 Reserved Words → Why They Create Long-Term Bugs
+
+Database-Level Conventions
+3.1 Naming Databases by Product and Context
+3.2 Handling Multiple Environments (dev, stg, prod) Safely
+3.3 Why Database Names Should Be Predictable
+
+Table & Column Naming
+4.1 Primary Keys → Why Surrogate Keys (id) Beat Natural Keys
+4.2 Foreign Keys → Why <table>_id Pattern Avoids Confusion
+4.3 Timestamps → Why Every Table Needs created_at and updated_at
+4.4 Soft Deletes → Why deleted_at Beats Boolean Flags
+4.5 Booleans → Why is_ and has_ Prefixes Improve Readability
+4.6 Amounts & Units → Why Explicit Units Prevent Ambiguity
+4.7 JSON Columns → Why _json Helps Contain Flexibility
+4.8 Enums vs Lookup Tables → Why Lookup Tables Scale Better
+4.9 History, Logs, and Backups → Why Explicit Suffixes Save Time
+4.10 Partitions & Shards → Why Native Partitioning Beats Table Explosion
+
+Constraints & Indexes
+5.1 Why Naming Constraints Matters for Debugging
+5.2 Primary Keys (pk_...)
+5.3 Foreign Keys (fk_...)
+5.4 Unique Constraints (ux_...)
+5.5 Non-Unique Indexes (ix_...)
+5.6 Check Constraints (ck_...)
+5.7 Fulltext Indexes (ft_...)
+
+Views, Routines & Triggers
+6.1 Views (v_...) → Why Explicit Purpose Names Help Reporting
+6.2 Stored Procedures (sp_...) → Why Action-Noun Naming Is Clearer
+6.3 Functions (fn_...) → Why Function Names Should Be Self-Explanatory
+6.4 Triggers (trg_...) → Why Timing and Event in Names Prevent Mistakes
+
+Migrations & Versioning
+7.1 File Naming → Why Timestamped Names Are Essential for Ordering
+7.2 One Action/Object per File → Why Small, Atomic Changes Matter
+7.3 Rollback & CI/CD Safety
+
+Additional Conventions That Pay Off at Scale
+8.1 Character Sets & Collations → Why utf8mb4 Is the Only Safe Default
+8.2 Time Handling → Why Always Store UTC with _at
+8.3 DATETIME vs TIMESTAMP → Differences, Trade-offs, and Best Practices
+8.4 Explicit Types & Lengths → Why VARCHAR(320) Beats TEXT
+8.5 Nullability → Why NOT NULL Should Be Default
+8.6 IDs → Why Dual IDs (id + public_id) Improve Internal/External Safety
+8.7 Naming Collisions → Why Extending Reserved Names Prevents Bugs
+- Common collision scenarios (reserved words, overloaded terms, cross-service schemas)
+- Bad handling: quoting reserved words, overloading common nouns
+- Good handling: suffixing/prefixing (order_number, group_account)
+- Examples of safe vs unsafe names in practice
+8.8 API Alignment → Why DB Schema Should Mirror API Fields
+8.9 Archival Tables (_archive) → Why Separation Improves Performance
+8.10 Temporary Tables (tmp_...) → Why Explicit Naming Avoids Accidents
+8.11 Consistency Over Cleverness → Why Exceptions Must Be Documented
+8.12 Defaults: Database vs Application — When to Use Which
+- Why created_at and updated_at should be DB-managed
+- Why business rules (status, is_active, etc.) belong in the application
+- Risks of overusing DB defaults (magic numbers, zero-dates, empty strings)
+- Hybrid model for safety + portability
+
+Examples & Patterns in Action
+9.1 Example Schema: user, currency, order
+9.2 Example Constraints & Indexes
+9.3 Example View, Function, Trigger
+9.4 Example Migration File
+
+Cheat Sheet (Quick Reference)
+
+Database name
+
+Table name
+
+Column name examples
+
+Constraint/index patterns
+
+Boolean/enum conventions
+
+Migration filename example
+
+Conclusion
+11.1 Why These Conventions Work in Real-World Scale
+11.2 How to Enforce Them (Linters, CI/CD, Code Review)
+11.3 The Golden Rule → Consistency Beats Cleverness
+11.3 The Golden Rule → Consistency Beats Cleverness

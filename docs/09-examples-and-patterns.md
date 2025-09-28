@@ -2,184 +2,158 @@
 
 [← Previous: Additional Conventions That Pay Off at Scale](08-additional-conventions.md) • [Back to index](index.md) • [Next chapter →](10-cheat-sheet.md)
 
-This chapter turns the naming rules into a working example. We build a small commerce data model with three tables, wire up the constraints, add a reporting view, write a helper function and trigger, and finish with a migration script. Each section explains why the names follow the standard and what would go wrong if we cut corners.
+This chapter turns the rules into a small, consistent scenario: a project-tracking application. You will see tables, constraints, routines, a view, and a migration file that all follow the conventions from earlier chapters.
 
-## 9.1 Example Schema: `user`, `currency`, `order`
+## 9.1 Example schema: `project`, `team_member`, `time_entry`
 
 ### Design goals
-- Show how lowercase snake case keeps object names readable.
-- Demonstrate consistent suffixes such as `_id`, `_at`, and `_amount`.
-- Highlight how descriptive names make joins and reports self-explanatory.
+
+- Demonstrate lower_snake_case across the entire schema.
+- Show how surrogate keys and foreign keys use the `_id` pattern.
+- Highlight explicit units (`_minutes`, `_cents`) and timestamps (`_at`).
 
 ### Table definitions
-The three core tables mirror a real checkout flow. `user` stores account details, `currency` stores allowed ISO codes, and `order` records purchases.
 
 ```sql
-CREATE TABLE `user` (
+CREATE TABLE project (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    public_id CHAR(26) NOT NULL UNIQUE COMMENT 'Short ID shared with customers',
-    email VARCHAR(320) NOT NULL UNIQUE,
+    public_id CHAR(27) NOT NULL,
+    name VARCHAR(160) NOT NULL,
+    time_budget_minutes INT UNSIGNED NOT NULL DEFAULT 0,
+    status_code VARCHAR(32) NOT NULL DEFAULT 'planning',
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    archived_at DATETIME NULL,
+    UNIQUE KEY ux_project__public_id (public_id)
+);
+
+CREATE TABLE team_member (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     full_name VARCHAR(200) NOT NULL,
-    preferred_currency_code CHAR(3) NOT NULL,
+    email VARCHAR(320) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at DATETIME NULL,
-    CONSTRAINT fk_user_currency
-        FOREIGN KEY (preferred_currency_code)
-        REFERENCES currency (code)
-        ON UPDATE CASCADE
+    UNIQUE KEY ux_team_member__email (email)
 );
 
-CREATE TABLE currency (
-    code CHAR(3) PRIMARY KEY COMMENT 'ISO 4217 currency code',
-    name VARCHAR(64) NOT NULL,
-    fraction SMALLINT UNSIGNED NOT NULL COMMENT 'Number of fractional digits'
-);
-
-CREATE TABLE `order` (
+CREATE TABLE time_entry (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    public_id CHAR(26) NOT NULL UNIQUE,
-    user_id BIGINT UNSIGNED NOT NULL,
-    currency_code CHAR(3) NOT NULL,
-    total_amount_cents BIGINT UNSIGNED NOT NULL,
-    status VARCHAR(32) NOT NULL,
-    placed_at DATETIME NOT NULL,
-    fulfilled_at DATETIME NULL,
+    project_id BIGINT UNSIGNED NOT NULL,
+    team_member_id BIGINT UNSIGNED NOT NULL,
+    logged_minutes INT UNSIGNED NOT NULL,
+    billable_amount_cents INT UNSIGNED NOT NULL,
+    submitted_at DATETIME NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_order_user
-        FOREIGN KEY (user_id) REFERENCES `user` (id),
-    CONSTRAINT fk_order_currency
-        FOREIGN KEY (currency_code) REFERENCES currency (code)
+    CONSTRAINT fk_time_entry__project_id__project
+        FOREIGN KEY (project_id) REFERENCES project (id),
+    CONSTRAINT fk_time_entry__team_member_id__team_member
+        FOREIGN KEY (team_member_id) REFERENCES team_member (id)
 );
 ```
 
 ### Why the names matter
-- Readers can guess relationships: `user_id` points to `user.id`, `currency_code` points to `currency.code`.
-- Timestamp columns share the `_at` suffix so a report can scan for date fields quickly.
-- `total_amount_cents` makes the unit explicit; `total_amount` alone would force readers to check documentation.
 
-> **Field Note:** Using consistent names across tables lets BI tools auto-discover joins instead of requiring manual mapping.
+- Each table uses a surrogate `id` and optional public identifier when needed.
+- Foreign keys mirror the referenced table names, so joins read naturally.
+- Units and suffixes make queries self-explanatory (`logged_minutes`, `submitted_at`).
 
-## 9.2 Example Constraints & Indexes
-
-Constraints and indexes deserve descriptive names too. They explain intent when MySQL throws errors or when you inspect the schema with tooling.
+## 9.2 Example constraints and indexes
 
 ```sql
-ALTER TABLE `user`
-    ADD CONSTRAINT ux_user_email UNIQUE (email),
-    ADD INDEX ix_user_deleted_at (deleted_at);
+ALTER TABLE project
+    ADD CONSTRAINT ck_project__time_budget_minutes_nonneg
+        CHECK (time_budget_minutes >= 0);
 
-ALTER TABLE `order`
-    ADD CONSTRAINT ck_order_status
-        CHECK (status IN ('pending', 'paid', 'refunded', 'cancelled')),
-    ADD INDEX ix_order_user_id_status (user_id, status),
-    ADD INDEX ix_order_placed_at (placed_at);
+ALTER TABLE time_entry
+    ADD CONSTRAINT ck_time_entry__billable_amount_cents_nonneg
+        CHECK (billable_amount_cents >= 0),
+    ADD CONSTRAINT ux_time_entry__project_id_team_member_id_submitted_at
+        UNIQUE (project_id, team_member_id, submitted_at),
+    ADD INDEX ix_time_entry__project_id_submitted_at (project_id, submitted_at);
 ```
 
 ### Why the names matter
-- `ux_user_email` tells reviewers that the unique key protects email addresses. Without the prefix the intent would be hidden.
-- `ck_order_status` documents the allowed values in plain words. Debugging failed inserts becomes faster because MySQL includes the name in the error message.
-- Composite indexes like `ix_order_user_id_status` expose the column order so engineers can plan queries that match it.
 
-> **Field Note:** When a migration fails in production, a clear constraint name lets you find and fix the broken rule without guessing.
+- Check constraints describe the business rule being enforced.
+- The unique constraint spells out the natural key used for deduplication.
+- The index name reveals which query pattern it accelerates.
 
-## 9.3 Example View, Function, Trigger
-
-Naming rules help readers understand logic beyond tables. The following objects show how the prefixes from Chapter 6 apply in practice.
+## 9.3 Example view, function, and trigger
 
 ```sql
-CREATE OR REPLACE VIEW v_user_recent_orders AS
+CREATE OR REPLACE VIEW v_project_recent_activity AS
 SELECT
-    u.id AS user_id,
-    u.email,
-    o.public_id AS order_public_id,
-    o.total_amount_cents,
-    o.placed_at,
-    o.status
-FROM `user` u
-JOIN `order` o ON o.user_id = u.id
-WHERE o.placed_at >= NOW() - INTERVAL 30 DAY;
+    p.id AS project_id,
+    p.name,
+    te.team_member_id,
+    te.logged_minutes,
+    te.billable_amount_cents,
+    te.submitted_at
+FROM project p
+JOIN time_entry te ON te.project_id = p.id
+WHERE te.submitted_at >= NOW() - INTERVAL 30 DAY;
 ```
 
 ```sql
-DELIMITER $$
-CREATE FUNCTION fn_order_total_in_currency(p_order_id BIGINT UNSIGNED, p_currency_code CHAR(3))
-RETURNS DECIMAL(18, 2)
+DELIMITER //
+CREATE FUNCTION fn_project_logged_minutes(p_project_id BIGINT)
+RETURNS INT
 DETERMINISTIC
 BEGIN
-    DECLARE v_total_cents BIGINT;
-    DECLARE v_fraction SMALLINT;
-
-    SELECT total_amount_cents INTO v_total_cents
-    FROM `order`
-    WHERE id = p_order_id;
-
-    SELECT fraction INTO v_fraction
-    FROM currency
-    WHERE code = p_currency_code;
-
-    RETURN v_total_cents / POW(10, v_fraction);
-END$$
+    DECLARE v_total INT;
+    SELECT COALESCE(SUM(logged_minutes), 0) INTO v_total
+    FROM time_entry
+    WHERE project_id = p_project_id;
+    RETURN v_total;
+END //
 DELIMITER ;
 ```
 
 ```sql
-DELIMITER $$
-CREATE TRIGGER trg_order_set_fulfilled_at
-BEFORE UPDATE ON `order`
+DELIMITER //
+CREATE TRIGGER trg_project__after__update
+AFTER UPDATE ON project
 FOR EACH ROW
 BEGIN
-    IF NEW.status = 'paid' AND OLD.status <> 'paid' THEN
-        SET NEW.fulfilled_at = NOW();
+    IF NEW.is_active = 0 AND OLD.is_active = 1 THEN
+        INSERT INTO project_activity_log (project_id, action_code, occurred_at)
+        VALUES (NEW.id, 'archived', NOW());
     END IF;
-END$$
+END //
 DELIMITER ;
 ```
 
 ### Why the names matter
-- The `v_`, `fn_`, and `trg_` prefixes tell the reader what kind of object they are before reading the definition.
-- `fn_order_total_in_currency` describes inputs and behaviour. A vague name like `fn_convert` would leave the purpose unclear.
-- `trg_order_set_fulfilled_at` encodes both the target table and the action so maintainers can find it quickly.
 
-> **Field Note:** Clear routine names reduce onboarding time because new engineers can map business flows without reading every line of SQL.
+- Prefixes (`v_`, `fn_`, `trg_`) highlight the object type instantly.
+- Function and trigger names read like sentences, so reviewers know their purpose at a glance.
+- The trigger name records both timing and event, making it easy to spot in schema dumps.
 
-## 9.4 Example Migration File
+## 9.4 Example migration files
 
-Migrations are the final piece. A good filename and structure keep releases predictable.
-
-### File name pattern
+```text
+20240718120000_create-project-tables.sql
+20240718120500_add-time-entry-constraints.sql
+20240718121000_create-v_project_recent_activity.sql
 ```
-20240718-120000_add-order-totals.sql
-```
-- The timestamp sorts migrations chronologically.
-- Hyphen-separated words describe the action in plain language.
-- The verb-noun structure (`add-order-totals`) mirrors the change inside the file.
 
-### File contents
 ```sql
--- 20240718-120000_add-order-totals.sql
--- Adds total_amount_cents and fulfilled_at columns to order table.
-
-START TRANSACTION;
-
-ALTER TABLE `order`
-    ADD COLUMN total_amount_cents BIGINT UNSIGNED NOT NULL DEFAULT 0 AFTER currency_code,
-    ADD COLUMN fulfilled_at DATETIME NULL AFTER placed_at,
-    ADD INDEX ix_order_placed_at (placed_at);
-
-UPDATE `order`
-SET total_amount_cents = 0
-WHERE total_amount_cents IS NULL;
-
-COMMIT;
+-- 20240718120500_add-time-entry-constraints.sql
+-- Adds deduplication and non-negative checks to time_entry.
+-- Rollback: 20240718120500_add-time-entry-constraints_down.sql
+ALTER TABLE time_entry
+    ADD CONSTRAINT ck_time_entry__billable_amount_cents_nonneg
+        CHECK (billable_amount_cents >= 0),
+    ADD CONSTRAINT ux_time_entry__project_id_team_member_id_submitted_at
+        UNIQUE (project_id, team_member_id, submitted_at);
 ```
 
-### Why the structure works
-- A short comment at the top documents the intent for reviewers and incident responders.
-- Wrapping changes in a transaction makes the migration safe to rerun if a step fails.
-- Naming the index inside the migration keeps schema diffs clean when running `SHOW CREATE TABLE` later.
+### Why the names matter
 
-> **Field Note:** Teams that describe the change and index names directly in the migration file avoid the "mystery DDL" problem when reading production history.
+- Timestamps maintain order across environments.
+- Slugs summarise the intent without opening the file.
+- Rollback comments explain how to undo the change.
 
-[← Previous: Additional Conventions That Pay Off at Scale](08-additional-conventions.md) • [Back to index](index.md) • [Next chapter →](10-cheat-sheet.md)
+By following the same patterns in your own projects, you make the schema self-documenting and easier to maintain.

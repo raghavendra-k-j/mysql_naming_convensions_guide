@@ -1,6 +1,6 @@
 # Chapter 5 – Constraints & Indexes
 
-[← Previous: Table & Column Naming](04-table-and-column-naming.md) • [Back to index](index.md) • [Next chapter →](06-views-routines-triggers.md) _(coming soon)_
+[← Previous: Table & Column Naming](04-table-and-column-naming.md) • [Back to index](index.md) • [Next chapter →](06-views-routines-triggers.md)
 
 Good table and column names keep data readable, but the story is not complete until constraints and indexes are named just as clearly. When constraint names explain what they guard, error messages become self-explanatory, migrations stay predictable, and on-call engineers can fix problems without guesswork. This chapter walks through each constraint and index pattern so teams can spot issues in seconds instead of hours.
 

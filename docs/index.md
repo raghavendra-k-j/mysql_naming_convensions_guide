@@ -9,12 +9,12 @@ Welcome! This index mirrors the table of contents for the complete guide. Every 
 - [Chapter 3 – Database-Level Conventions](03-database-level-conventions.md)
 - [Chapter 4 – Table & Column Naming](04-table-and-column-naming.md)
 - [Chapter 5 – Constraints & Indexes](05-constraints-and-indexes.md)
+- [Chapter 6 – Views, Routines & Triggers](06-views-routines-triggers.md)
+- [Chapter 7 – Migrations & Versioning](07-migrations-and-versioning.md)
 
 ## Coming Soon
 
 The remaining topics from the project outline will be published gradually so each one can be reviewed in depth:
-6. Views, Routines & Triggers
-7. Migrations & Versioning
 8. Additional Conventions That Pay Off at Scale
 9. Examples & Patterns in Action
 10. Cheat Sheet (Quick Reference)

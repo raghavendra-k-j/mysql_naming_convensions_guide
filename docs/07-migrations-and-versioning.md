@@ -1,6 +1,6 @@
 # Chapter 7 – Migrations & Versioning
 
-[← Previous: Views, Routines & Triggers](06-views-routines-triggers.md) • [Back to index](index.md) • [Next chapter →](08-additional-conventions.md) _(coming soon)_
+[← Previous: Views, Routines & Triggers](06-views-routines-triggers.md) • [Back to index](index.md) • [Next chapter →](08-additional-conventions.md)
 
 Naming database objects is only half the story. Teams also need a disciplined way to name the migration files that create, change, and remove those objects. Clear migration names help everyone understand deployment order, audit changes during incidents, and roll back safely when something goes wrong. This chapter explains how to name migration files so large teams can ship changes with confidence.
 
@@ -100,4 +100,4 @@ ALTER TABLE invoice
 
 > **Field Note:** Naming rollback files with the same timestamp keeps automation from guessing.
 
-[← Previous: Views, Routines & Triggers](06-views-routines-triggers.md) • [Back to index](index.md) • [Next chapter →](08-additional-conventions.md) _(coming soon)_
+[← Previous: Views, Routines & Triggers](06-views-routines-triggers.md) • [Back to index](index.md) • [Next chapter →](08-additional-conventions.md)

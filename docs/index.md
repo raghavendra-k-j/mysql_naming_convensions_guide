@@ -11,11 +11,11 @@ Welcome! This index mirrors the table of contents for the complete guide. Every 
 - [Chapter 5 – Constraints & Indexes](05-constraints-and-indexes.md)
 - [Chapter 6 – Views, Routines & Triggers](06-views-routines-triggers.md)
 - [Chapter 7 – Migrations & Versioning](07-migrations-and-versioning.md)
+- [Chapter 8 – Additional Conventions That Pay Off at Scale](08-additional-conventions.md)
 
 ## Coming Soon
 
 The remaining topics from the project outline will be published gradually so each one can be reviewed in depth:
-8. Additional Conventions That Pay Off at Scale
 9. Examples & Patterns in Action
 10. Cheat Sheet (Quick Reference)
 11. Conclusion

@@ -1,6 +1,6 @@
 # Chapter 4 – Table & Column Naming
 
-[← Previous: Database-Level Conventions](03-database-level-conventions.md) • [Back to index](index.md) • [Next chapter →](05-constraints-and-indexes.md) _(coming soon)_
+[← Previous: Database-Level Conventions](03-database-level-conventions.md) • [Back to index](index.md) • [Next chapter →](05-constraints-and-indexes.md)
 
 Tables and columns are the backbone of every MySQL schema. This chapter explains how to name them so relationships stay clear,
 queries stay predictable, and migrations stay easy even when the database grows to millions of rows.

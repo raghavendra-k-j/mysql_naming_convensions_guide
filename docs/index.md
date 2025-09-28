@@ -8,11 +8,11 @@ Welcome! This index mirrors the table of contents for the complete guide. Every 
 - [Chapter 2 – Core Naming Rules](02-core-naming-rules.md)
 - [Chapter 3 – Database-Level Conventions](03-database-level-conventions.md)
 - [Chapter 4 – Table & Column Naming](04-table-and-column-naming.md)
+- [Chapter 5 – Constraints & Indexes](05-constraints-and-indexes.md)
 
 ## Coming Soon
 
 The remaining topics from the project outline will be published gradually so each one can be reviewed in depth:
-5. Constraints & Indexes
 6. Views, Routines & Triggers
 7. Migrations & Versioning
 8. Additional Conventions That Pay Off at Scale

@@ -12,12 +12,8 @@ Welcome! This index mirrors the table of contents for the complete guide. Every 
 - [Chapter 6 – Views, Routines & Triggers](06-views-routines-triggers.md)
 - [Chapter 7 – Migrations & Versioning](07-migrations-and-versioning.md)
 - [Chapter 8 – Additional Conventions That Pay Off at Scale](08-additional-conventions.md)
+- [Chapter 9 – Examples & Patterns in Action](09-examples-and-patterns.md)
+- [Chapter 10 – Cheat Sheet (Quick Reference)](10-cheat-sheet.md)
+- [Chapter 11 – Conclusion](11-conclusion.md)
 
-## Coming Soon
-
-The remaining topics from the project outline will be published gradually so each one can be reviewed in depth:
-9. Examples & Patterns in Action
-10. Cheat Sheet (Quick Reference)
-11. Conclusion
-
-Subscribe to the repository or check back after each commit to follow the progress chapter by chapter.
+All chapters from the original outline are now published. Share the guide with your team, link to specific chapters in code reviews, and suggest improvements through pull requests.

@@ -1,6 +1,6 @@
 # Chapter 8 – Additional Conventions That Pay Off at Scale
 
-[← Previous: Migrations & Versioning](07-migrations-and-versioning.md) • [Back to index](index.md) • [Next chapter →](09-examples-and-patterns.md) _(coming soon)_
+[← Previous: Migrations & Versioning](07-migrations-and-versioning.md) • [Back to index](index.md) • [Next chapter →](09-examples-and-patterns.md)
 
 These conventions do not fit into a single object type, yet they protect every MySQL project once it starts to grow. Think of them as the safety net around the core naming rules. Each section explains the recommendation, the pain you avoid by following it, and a simple way to put the idea into practice.
 
@@ -362,4 +362,4 @@ CREATE TABLE feature_flag (
 
 > **Field Note:** Clear responsibility for defaults keeps your schema portable across services and environments.
 
-[← Previous: Migrations & Versioning](07-migrations-and-versioning.md) • [Back to index](index.md) • [Next chapter →](09-examples-and-patterns.md) _(coming soon)_
+[← Previous: Migrations & Versioning](07-migrations-and-versioning.md) • [Back to index](index.md) • [Next chapter →](09-examples-and-patterns.md)

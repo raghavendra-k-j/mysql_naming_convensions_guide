@@ -2,102 +2,109 @@
 
 [← Previous: Views, Routines & Triggers](06-views-routines-triggers.md) • [Back to index](index.md) • [Next chapter →](08-additional-conventions.md)
 
-Naming database objects is only half the story. Teams also need a disciplined way to name the migration files that create, change, and remove those objects. Clear migration names help everyone understand deployment order, audit changes during incidents, and roll back safely when something goes wrong. This chapter explains how to name migration files so large teams can ship changes with confidence.
+Schema changes should be as predictable as the schema itself. Use this chapter as a playbook for naming migration files and keeping version history clear.
 
-## 7.1 File Naming → Why Timestamped Names Are Essential for Ordering
+## 7.1 Timestamped filenames keep order predictable
 
-**Rule.** Prefix every migration filename with a sortable timestamp (UTC, `YYYYMMDDHHMMSS`) followed by a short, descriptive slug, such as `20240415103000_add_invoice_indexes.sql`.
+**Learn the rule.** Start every migration filename with a UTC timestamp in `YYYYMMDDHHMMSS` format, followed by a short slug: `20240718120000_add-project-status.sql`.
 
-**Why this matters.**
-- Timestamps give an absolute order so that distributed teams apply migrations in the same sequence.
-- CI/CD systems can pick up new files by comparing timestamps without reading their contents.
-- Auditors and incident responders can line up schema changes with application releases.
+**Why it works.**
 
-**What goes wrong without the rule.**
-- Natural-language names sort differently on different operating systems, causing migrations to run in a dangerous order.
-- Engineers forget to add numbers manually (`01`, `02`) and end up renumbering files, making pull requests hard to review.
-- Re-running migrations on a new environment fails because there is no reliable order to follow.
+- Timestamps sort naturally, so every environment runs migrations in the same order.
+- CI/CD jobs can detect new files by comparing timestamps.
+- Auditors can align database changes with application releases.
 
-**How to apply it.**
-1. Generate the timestamp in UTC to avoid daylight savings issues.
-2. Use a single underscore between the timestamp and the slug.
-3. Keep the slug short but specific (`create_payment_table`, `drop_legacy_trigger`).
-4. Store the script in a directory dedicated to migrations so tooling can locate it.
+**Follow the steps.**
 
-**Practical example.**
-```
-20240415103000_add_invoice_indexes.sql
-20240418120000_create_v_invoice_summary.sql
-20240422151500_sp_archive_orders.sql
+1. Generate the timestamp in UTC.
+2. Add an underscore and a hyphen-separated slug (`add-project-status` or `add_project_status`, pick one style and stick to it). This guide uses hyphenated slugs.
+3. Keep the slug short but descriptive.
+4. Store migrations in a dedicated directory (for example, `db/migrate`).
+
+```text
+20240718120000_add-project-status.sql
+20240722153000_create-v_project_recent_activity.sql
+20240725100000_sp_archive_project.sql
 ```
 
-> **Field Note:** When a deployment fails, the timestamp instantly tells you which migration to re-run and in what order.
+## 7.2 One task per migration file
 
-## 7.2 One Action/Object per File → Why Small, Atomic Changes Matter
+**Learn the rule.** Keep each file focused on a single object or closely related set of changes.
 
-**Rule.** Keep each migration focused on a single object or closely related set of changes. If you need to alter multiple tables, create multiple files.
+**Why it works.**
 
-**Why this matters.**
-- Atomic migrations are easier to review and test.
-- Rollbacks become less risky because you only undo the change that failed.
-- Merge conflicts shrink because two engineers are less likely to touch the same file.
+- Reviews stay short and clear.
+- Rollbacks only touch the failing change.
+- Merge conflicts shrink because fewer engineers edit the same file.
 
-**What goes wrong without the rule.**
-- A giant script that creates tables, triggers, and indexes at once becomes unreviewable.
-- Partial deploys leave the schema in a half-changed state that is hard to recover from.
-- When a single statement fails, the rest of the script does not run, leaving the database inconsistent.
+**Follow the steps.**
 
-**How to apply it.**
-1. Decide what the migration is responsible for (for example, create a table, add a column, drop a trigger).
-2. Write a descriptive slug that matches the action (`add_customer_timezone_column`).
-3. If you need to perform follow-up steps (such as backfilling data), place them in a separate script with its own timestamp.
-4. Document cross-file dependencies in comments so reviewers understand the sequence.
+1. Decide what the file is responsible for (create a table, add a column, drop a trigger).
+2. Name the slug to match the action (`add-time-entry-billable-flag`).
+3. If you need to backfill or clean data, add a new migration with its own timestamp.
+4. Mention dependencies in comments when one file must run before another.
 
-**Practical example.**
-```
-20240501100000_create_customer_timezone_column.sql
-20240501101000_backfill_customer_timezone.sql
-20240501102000_add_customer_timezone_index.sql
+```text
+20240730090000_add-time-entry-billable-flag.sql
+20240730090500_backfill-time-entry-billable-flag.sql
+20240730091000_add-time-entry-billable-index.sql
 ```
 
-> **Field Note:** When you keep migrations small, you can roll back one slice without touching other parts of the release.
+## 7.3 Document rollbacks right in the file
 
-## 7.3 Rollback & CI/CD Safety
+**Learn the rule.** Write a short header comment describing the change, its purpose, and how to undo it. When you store rollback scripts separately, reuse the same timestamp.
 
-**Rule.** For every migration, plan the rollback path and record it in the file header. Use consistent naming so automated tools can pair forward and backward steps.
+**Why it works.**
 
-**Why this matters.**
-- Deployments occasionally fail. A documented rollback lets teams recover without delay.
-- CI/CD pipelines can enforce that every forward script has a matching rollback script when names follow a pattern.
-- Future engineers know the intent behind the change when they read the file years later.
+- On-call engineers know exactly how to reverse the change.
+- CI/CD pipelines can pair forward and backward files reliably.
+- Future teammates understand why the migration exists.
 
-**What goes wrong without the rule.**
-- A hotfix removes a column, but nobody remembers how to rebuild it when the fix fails.
-- Rollback scripts are named inconsistently, so the pipeline cannot find them and aborts the deploy.
-- New environments drift because initial setup migrations include destructive statements without safety notes.
+**Follow the steps.**
 
-**How to apply it.**
-1. Add a header comment describing the change, the reason, and the rollback steps.
-2. If the team uses paired files, follow a shared pattern (for example, `20240502090000_add_index.sql` and `20240502090000_add_index_down.sql`).
-3. Test the rollback locally or in staging before merging the migration.
-4. Include guards such as `IF EXISTS` and `IF NOT EXISTS` to keep reruns safe.
+1. Start each file with comments explaining the forward change and the rollback path.
+2. If you keep paired scripts, name the rollback `<timestamp>_<slug>_down.sql`.
+3. Test both forward and backward scripts in staging before release.
+4. Use safety guards like `IF EXISTS` for destructive actions.
 
-**Practical example.**
 ```sql
--- 20240502090000_add_index.sql
--- Adds ix_invoice__customer_id_created_at for dashboard performance.
--- Rollback: drop the index with 20240502090000_add_index_down.sql
-ALTER TABLE invoice
-    ADD INDEX ix_invoice__customer_id_created_at (customer_id, created_at);
+-- 20240718120000_add-project-status.sql
+-- Adds project_status table and links it to project.status_code.
+-- Rollback: run 20240718120000_add-project-status_down.sql to drop the table and column.
+START TRANSACTION;
+
+CREATE TABLE project_status (
+    status_code VARCHAR(32) PRIMARY KEY,
+    display_label VARCHAR(64) NOT NULL
+);
+
+ALTER TABLE project
+    ADD COLUMN status_code VARCHAR(32) NOT NULL DEFAULT 'planning',
+    ADD CONSTRAINT fk_project__project_status
+        FOREIGN KEY (status_code) REFERENCES project_status (status_code);
+
+COMMIT;
 ```
 
 ```sql
--- 20240502090000_add_index_down.sql
--- Rollback for 20240502090000_add_index.sql
-ALTER TABLE invoice
-    DROP INDEX ix_invoice__customer_id_created_at;
+-- 20240718120000_add-project-status_down.sql
+-- Rollback for 20240718120000_add-project-status.sql
+START TRANSACTION;
+
+ALTER TABLE project
+    DROP FOREIGN KEY fk_project__project_status,
+    DROP COLUMN status_code;
+
+DROP TABLE project_status;
+
+COMMIT;
 ```
 
-> **Field Note:** Naming rollback files with the same timestamp keeps automation from guessing.
+**Checklist**
 
-[← Previous: Views, Routines & Triggers](06-views-routines-triggers.md) • [Back to index](index.md) • [Next chapter →](08-additional-conventions.md)
+- [ ] Does the filename begin with a UTC timestamp?
+- [ ] Does the slug describe one clear action?
+- [ ] Is the change limited to a single object or tightly related set?
+- [ ] Are rollback instructions documented and, if needed, scripted?
+
+If all boxes are checked, your migration naming is ready for production.
